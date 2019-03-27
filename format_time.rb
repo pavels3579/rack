@@ -13,22 +13,8 @@ class FormatTime
     @request = req
   end
 
-  def get_response
-    if valid_url?
-      get_time
-    else
-      invalid_url
-    end
-  end
-
-  private
-
   def valid_url?
     @request.path == '/time' && @request.params["format"]
-  end
-
-  def invalid_url
-    make_response(404, "Unknown url")
   end
 
   def get_time
@@ -36,41 +22,19 @@ class FormatTime
     time_array = time_formats.split(',')
 
     t = Time.now
-    result = [];
-    mistakes = []
 
-    time_array.each do |f|
-      if TIME_FORMAT[f.to_sym]
-        result << t.strftime(TIME_FORMAT[f.to_sym])
-      else
-        mistakes << f
-      end
-    end
+    res = time_array.partition { |f| !TIME_FORMAT[f.to_sym].nil? }
+    correct = res.first
+    mistakes = res.last
 
-    if mistakes.size > 0
-      body_str = unknowm_format(mistakes)
-      return make_response(400, body_str)
-    end
+    return { status: 400, body: mistakes, valid: false} if mistakes.size > 0
 
-    body_str = result.join("-")
-    make_response(200, body_str)
-  end
+    result = []
+    correct.each { |f| result << TIME_FORMAT[f.to_sym] }
 
-  def headers
-    { 'Content-Type' => 'text/plain' }
-  end
+    result = t.strftime(result.join("-"))
 
-  def make_response(status, body)
-    [status, headers, get_body(body)]
-  end
-
-  def get_body(str)
-    #["Welcome aboard!\n"]
-    ["#{str}\n"]
-  end
-
-  def unknowm_format(formats)
-    "Unknown time format [#{formats.join(',')}]"
+    return { status: 200, body: result, valid: true }
   end
 
 end
