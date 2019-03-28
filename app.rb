@@ -2,16 +2,15 @@ class App
 
   def call (env)
     request = Rack::Request.new(env)
-    formater = FormatTime.new(request)
 
-    return invalid_url unless formater.valid_url?
+    return invalid_url unless request.path == '/time' && request.params["format"]
 
-    result = formater.get_time
+    formater = FormatTime.new(request.params["format"].split(','))
 
-    if result[:valid]
-      make_response(result[:status], result[:body])
+    if formater.valid?
+      make_response(200, formater.get_time)
     else
-      make_response(result[:status], unknowm_format(result[:body]))
+      make_response(400, unknown_formats(formater.invalid_formats))
     end
 
   end
@@ -26,7 +25,7 @@ class App
     [status, headers, ["#{body}\n"]]
   end
 
-  def unknowm_format(formats)
+  def unknown_formats(formats)
     "Unknown time format [#{formats.join(',')}]"
   end
 

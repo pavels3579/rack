@@ -9,32 +9,27 @@ class FormatTime
                  second: "%S"
                 }
 
-  def initialize(req)
-    @request = req
-  end
-
-  def valid_url?
-    @request.path == '/time' && @request.params["format"]
+  def initialize(formats)
+    @formats = formats
   end
 
   def get_time
-    time_formats = @request.params["format"]
-    time_array = time_formats.split(',')
-
     t = Time.now
 
-    res = time_array.partition { |f| !TIME_FORMAT[f.to_sym].nil? }
-    correct = res.first
-    mistakes = res.last
+    correct = valid_formats.map { |format| TIME_FORMAT[format.to_sym]}
+    t.strftime(correct.join("-"))
+  end
 
-    return { status: 400, body: mistakes, valid: false} if mistakes.size > 0
+  def valid_formats
+    @formats.select { |format| TIME_FORMAT.key?(format.to_sym) }
+  end
 
-    result = []
-    correct.each { |f| result << TIME_FORMAT[f.to_sym] }
+  def invalid_formats
+    @formats.reject { |format| TIME_FORMAT.key?(format.to_sym) }
+  end
 
-    result = t.strftime(result.join("-"))
-
-    return { status: 200, body: result, valid: true }
+  def valid?
+    invalid_formats.empty?
   end
 
 end
